@@ -1,0 +1,14 @@
+boto3
+paho-mqtt
+
+
+bash /Users/sonal/Documents/Fog&Edge_CA/cloud/update_aws.sh
+#OR
+
+
+echo "alias awsupdate='bash /Users/sonal/Documents/Fog&Edge_CA/update_aws.sh'" >> ~/.zshrc
+source ~/.zshrc
+## Now anywhere in terminal just type:
+
+
+#awsupdate
