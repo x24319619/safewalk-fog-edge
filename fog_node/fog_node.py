@@ -72,7 +72,7 @@ def make_decision(score, data, client):
 
     else:
         status = "SAFE"
-        print(f"    SAFE — Score {score} is low. Not escalating to cloud.")
+        print(f"  SAFE — Score {score} is low. Not escalating to cloud.")
 
     return status
 

@@ -4,12 +4,12 @@ import os
 from datetime import datetime
 
 # ─── AWS SERVICES ─────────────────────────────────────────────
-dynamodb = boto3.resource('dynamodb')
-sns      = boto3.client('sns')
+dynamodb = boto3.resource('dynamodb', region_name='us-east-1')
+sns      = boto3.client('sns', region_name='us-east-1')
 
-# ─── YOUR CONFIG (we will fill these after AWS setup) ─────────
-TABLE_NAME = "safewalk_incidents"
-SNS_TOPIC  = "arn:aws:sns:us-east-1:XXXX:safewalk-alerts"  # update later
+# ─── YOUR CONFIG ──────────────────────────────────────────────
+TABLE_NAME = os.environ.get('TABLE_NAME', 'safewalk_incidents')
+SNS_TOPIC  = os.environ.get('SNS_TOPIC_ARN', 'arn:aws:sns:us-east-1:653266299688:safewalk-alerts')
 
 # ─── MAIN LAMBDA HANDLER ──────────────────────────────────────
 def handler(event, context):
