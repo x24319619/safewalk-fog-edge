@@ -1,0 +1,41 @@
+# SafeWalk Sensor Configuration
+student:
+  id: S001
+  name: Sonal
+
+mqtt:
+  broker: localhost
+  port: 1883
+  topic: campus/student/location
+
+sensors:
+  frequency_seconds: 5
+  dispatch_rate: 1
+
+scenarios:
+  normal:
+    speed_min: 1.0
+    speed_max: 2.5
+    light_min: 200
+    light_max: 600
+    stationary: 0
+    panic: false
+
+  dark_zone:
+    speed_min: 0.0
+    speed_max: 0.1
+    light_min: 10
+    light_max: 45
+    stationary_options: [120, 150, 180, 200]
+    panic: false
+
+  panic:
+    speed: 0.0
+    light_min: 5
+    light_max: 30
+    stationary: 200
+    panic: true
+
+thresholds:
+  critical: 65
+  warning: 35
