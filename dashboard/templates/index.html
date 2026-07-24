@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeWalk — Campus Safety Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background: #0a0f1a;
+            color: #e8f4fd;
+            min-height: 100vh;
+        }
+
+        /* ── HEADER ── */
+        header {
+            background: linear-gradient(135deg, #0d1b2a 0%, #1a2e45 100%);
+            padding: 18px 32px;
+            border-bottom: 1px solid rgba(0,212,255,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(10px);
+        }
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #00D4FF, #0088cc);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+        }
+        .logo-text { font-size: 20px; font-weight: 700; color: #00D4FF; }
+        .logo-sub  { font-size: 11px; color: #7A9BB5; }
+        .header-right { display: flex; align-items: center; gap: 20px; }
+        .live-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(46,213,115,0.1);
+            border: 1px solid rgba(46,213,115,0.3);
+            border-radius: 20px;
+            padding: 6px 14px;
+            font-size: 12px;
+            color: #2ED573;
+        }
+        .pulse {
+            width: 8px; height: 8px;
+            border-radius: 50%;
+            background: #2ED573;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.3)} }
+        .clock { font-family: monospace; font-size: 16px; color: #00D4FF; font-weight: 600; }
+
+        /* ── STATS ── */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            padding: 24px 32px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #162030, #1a2840);
+            border: 1px solid #1E3048;
+            border-radius: 14px;
+            padding: 22px;
+            position: relative;
+            overflow: hidden;
+            transition: transform 0.2s, border-color 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-2px); }
+        .stat-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0;
+            height: 3px;
+            border-radius: 14px 14px 0 0;
+        }
+        .stat-card.total::before  { background: #00D4FF; }
+        .stat-card.critical::before { background: #FF4757; }
+        .stat-card.warning::before  { background: #FFB347; }
+        .stat-card.safe::before     { background: #2ED573; }
+        .stat-icon { font-size: 28px; margin-bottom: 12px; }
+        .stat-val {
+            font-size: 42px;
+            font-weight: 800;
+            font-family: monospace;
+            line-height: 1;
+            margin-bottom: 6px;
+        }
+        .stat-card.total .stat-val    { color: #00D4FF; }
+        .stat-card.critical .stat-val { color: #FF4757; }
+        .stat-card.warning .stat-val  { color: #FFB347; }
+        .stat-card.safe .stat-val     { color: #2ED573; }
+        .stat-label { font-size: 12px; color: #7A9BB5; text-transform: uppercase; letter-spacing: 0.06em; }
+        .stat-glow {
+            position: absolute;
+            bottom: -20px; right: -20px;
+            width: 80px; height: 80px;
+            border-radius: 50%;
+            opacity: 0.06;
+        }
+        .stat-card.total .stat-glow    { background: #00D4FF; }
+        .stat-card.critical .stat-glow { background: #FF4757; }
+        .stat-card.warning .stat-glow  { background: #FFB347; }
+        .stat-card.safe .stat-glow     { background: #2ED573; }
+
+        /* ── MAIN CONTENT ── */
+        .content { padding: 0 32px 32px; display: grid; grid-template-columns: 1fr 340px; gap: 20px; }
+
+        /* ── TABLE ── */
+        .card {
+            background: #111927;
+            border: 1px solid #1E3048;
+            border-radius: 14px;
+            overflow: hidden;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid #1E3048;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .card-title {
+            font-size: 12px;
+            font-weight: 600;
+            color: #7A9BB5;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .card-title::before {
+            content: '';
+            width: 3px; height: 12px;
+            border-radius: 2px;
+            background: #00D4FF;
+            display: inline-block;
+        }
+        .count-badge {
+            background: rgba(0,212,255,0.1);
+            border: 1px solid rgba(0,212,255,0.2);
+            color: #00D4FF;
+            font-size: 11px;
+            padding: 2px 10px;
+            border-radius: 20px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            padding: 12px 16px;
+            text-align: left;
+            font-size: 11px;
+            color: #4A6A85;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            background: #0d1520;
+            border-bottom: 1px solid #1E3048;
+        }
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #1a2535;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        tr:hover td { background: rgba(0,212,255,0.03); }
+        tr:last-child td { border-bottom: none; }
+
+        .badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        .badge-CRITICAL {
+            background: rgba(255,71,87,0.15);
+            color: #FF4757;
+            border: 1px solid rgba(255,71,87,0.3);
+            animation: flashbadge 2s infinite;
+        }
+        @keyframes flashbadge { 0%,100%{opacity:1} 50%{opacity:0.6} }
+        .badge-WARNING {
+            background: rgba(255,179,71,0.15);
+            color: #FFB347;
+            border: 1px solid rgba(255,179,71,0.3);
+        }
+        .badge-SAFE {
+            background: rgba(46,213,115,0.12);
+            color: #2ED573;
+            border: 1px solid rgba(46,213,115,0.3);
+        }
+
+        /* ── SIDEBAR ── */
+        .sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+        /* ── ACTIVITY FEED ── */
+        .feed { max-height: 300px; overflow-y: auto; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+        .feed::-webkit-scrollbar { width: 4px; }
+        .feed::-webkit-scrollbar-track { background: transparent; }
+        .feed::-webkit-scrollbar-thumb { background: #1E3048; border-radius: 4px; }
+        .feed-item {
+            background: #162030;
+            border-radius: 8px;
+            padding: 10px 12px;
+            border-left: 3px solid;
+            font-size: 12px;
+        }
+        .feed-item.CRITICAL { border-color: #FF4757; }
+        .feed-item.WARNING  { border-color: #FFB347; }
+        .feed-item.SAFE     { border-color: #2ED573; }
+        .feed-time { font-size: 10px; color: #4A6A85; font-family: monospace; margin-bottom: 3px; }
+        .feed-name { font-weight: 600; margin-bottom: 2px; }
+        .feed-item.CRITICAL .feed-name { color: #FF4757; }
+        .feed-item.WARNING  .feed-name { color: #FFB347; }
+        .feed-item.SAFE     .feed-name { color: #2ED573; }
+        .feed-msg { color: #7A9BB5; line-height: 1.4; }
+
+        /* ── RISK METER ── */
+        .risk-meter { padding: 16px; }
+        .risk-label { display: flex; justify-content: space-between; font-size: 12px; color: #7A9BB5; margin-bottom: 8px; }
+        .risk-bar-track { height: 8px; background: #0d1520; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        .risk-bar-fill { height: 100%; border-radius: 4px; transition: width 0.5s ease, background 0.5s; }
+
+        /* ── SYSTEM STATUS ── */
+        .status-list { padding: 12px 16px; }
+        .status-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #1a2535;
+            font-size: 13px;
+        }
+        .status-item:last-child { border-bottom: none; }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; }
+        .status-dot.online  { background: #2ED573; animation: pulse 2s infinite; }
+        .status-dot.offline { background: #FF4757; }
+        .status-name { color: #7A9BB5; }
+        .status-val  { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+
+        .footer { text-align: center; padding: 16px; font-size: 11px; color: #2A4A65; }
+    </style>
+</head>
+<body>
+
+<header>
+    <div class="logo">
+        <div class="logo-icon">🛡️</div>
+        <div>
+            <div class="logo-text">SafeWalk</div>
+            <div class="logo-sub">Campus Safety Fog Edge System — NCI Dublin</div>
+        </div>
+    </div>
+    <div class="header-right">
+        <div class="live-badge">
+            <div class="pulse"></div>
+            System Live
+        </div>
+        <div class="clock" id="clock">--:--:--</div>
+    </div>
+</header>
+
+<!-- Stats -->
+<div class="stats-grid">
+    <div class="stat-card total">
+        <div class="stat-glow"></div>
+        <div class="stat-icon">📊</div>
+        <div class="stat-val" id="total">0</div>
+        <div class="stat-label">Total Incidents</div>
+    </div>
+    <div class="stat-card critical">
+        <div class="stat-glow"></div>
+        <div class="stat-icon">🚨</div>
+        <div class="stat-val" id="critical">0</div>
+        <div class="stat-label">Critical Alerts</div>
+    </div>
+    <div class="stat-card warning">
+        <div class="stat-glow"></div>
+        <div class="stat-icon">⚡</div>
+        <div class="stat-val" id="warning">0</div>
+        <div class="stat-label">Warnings</div>
+    </div>
+    <div class="stat-card safe">
+        <div class="stat-glow"></div>
+        <div class="stat-icon">✅</div>
+        <div class="stat-val" id="safe">0</div>
+        <div class="stat-label">Safe Events</div>
+    </div>
+</div>
+
+<div class="content">
+
+    <!-- Main Table -->
+    <div>
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Live Incident Feed</div>
+                <span class="count-badge" id="countBadge">0 incidents</span>
+            </div>
+            <table>
+                <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Student</th>
+                    <th>Risk Score</th>
+                    <th>Severity</th>
+                    <th>Message</th>
+                </tr>
+                </thead>
+                <tbody id="incidentTable">
+                <tr>
+                    <td colspan="5" style="text-align:center;color:#4A6A85;padding:40px">
+                        Waiting for incidents...
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+        <!-- System Status -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">System Status</div>
+            </div>
+            <div class="status-list">
+                <div class="status-item">
+                    <span class="status-name">Sensor Layer</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Active
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-name">Fog Node</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Processing
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-name">AWS IoT Core</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Connected
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-name">Lambda</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Running
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-name">DynamoDB</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Storing
+                    </div>
+                </div>
+                <div class="status-item">
+                    <span class="status-name">SNS Alerts</span>
+                    <div class="status-val">
+                        <div class="status-dot online"></div>
+                        Sending
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Latest Risk Score -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Latest Risk Score</div>
+            </div>
+            <div class="risk-meter">
+                <div class="risk-label">
+                    <span id="riskStudent">Waiting...</span>
+                    <span id="riskVal" style="font-family:monospace;color:#00D4FF">0/100</span>
+                </div>
+                <div class="risk-bar-track">
+                    <div class="risk-bar-fill" id="riskBar" style="width:0%;background:#2ED573"></div>
+                </div>
+                <div style="font-size:11px;color:#4A6A85;text-align:center" id="riskStatus">
+                    No alerts yet
+                </div>
+            </div>
+        </div>
+
+        <!-- Activity Feed -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">Activity Feed</div>
+            </div>
+            <div class="feed" id="activityFeed">
+                <div style="text-align:center;color:#4A6A85;padding:20px;font-size:12px">
+                    Waiting for activity...
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<div class="footer">
+    SafeWalk Fog Edge System — MSc Cloud Computing — NCI Dublin — Auto-refreshes every 5s
+</div>
+
+<script>
+    // Clock
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent =
+            String(now.getHours()).padStart(2,'0') + ':' +
+            String(now.getMinutes()).padStart(2,'0') + ':' +
+            String(now.getSeconds()).padStart(2,'0');
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // Load stats
+    function loadStats() {
+        fetch('/api/stats')
+            .then(r => r.json())
+            .then(data => {
+                document.getElementById('total').textContent    = data.total    || 0;
+                document.getElementById('critical').textContent = data.critical || 0;
+                document.getElementById('warning').textContent  = data.warning  || 0;
+                document.getElementById('safe').textContent     = data.safe     || 0;
+            })
+            .catch(console.error);
+    }
+
+    // Load incidents
+    function loadIncidents() {
+        fetch('/api/incidents')
+            .then(r => r.json())
+            .then(data => {
+                const incidents = data.incidents || [];
+                document.getElementById('countBadge').textContent = incidents.length + ' incidents';
+
+                // Update table
+                const tbody = document.getElementById('incidentTable');
+                if (incidents.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:#4A6A85;padding:40px">Waiting for incidents...</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = incidents.map(i => {
+                    const sev = i.severity || 'SAFE';
+                    const score = parseInt(i.risk_score) || 0;
+                    const scoreColor = score >= 65 ? '#FF4757' : score >= 35 ? '#FFB347' : '#2ED573';
+                    return `
+                        <tr>
+                            <td style="font-family:monospace;color:#7A9BB5">${i.timestamp || '-'}</td>
+                            <td style="font-weight:600">${i.student_name || '-'}</td>
+                            <td style="font-family:monospace;color:${scoreColor};font-weight:700">${score}/100</td>
+                            <td><span class="badge badge-${sev}">${sev}</span></td>
+                            <td style="color:#7A9BB5;font-size:12px">${i.message || '-'}</td>
+                        </tr>`;
+                }).join('');
+
+                // Update risk meter with latest
+                const latest = incidents[0];
+                if (latest) {
+                    const score = parseInt(latest.risk_score) || 0;
+                    const color = score >= 65 ? '#FF4757' : score >= 35 ? '#FFB347' : '#2ED573';
+                    const status = score >= 65 ? '🚨 CRITICAL — Security Alerted!' : score >= 35 ? '⚡ WARNING — Monitoring Closely' : '✅ SAFE';
+                    document.getElementById('riskStudent').textContent = latest.student_name || 'Unknown';
+                    document.getElementById('riskVal').textContent = score + '/100';
+                    document.getElementById('riskBar').style.width = score + '%';
+                    document.getElementById('riskBar').style.background = color;
+                    document.getElementById('riskStatus').textContent = status;
+                    document.getElementById('riskStatus').style.color = color;
+                }
+
+                // Update activity feed
+                const feed = document.getElementById('activityFeed');
+                feed.innerHTML = incidents.slice(0, 10).map(i => {
+                    const sev = i.severity || 'SAFE';
+                    return `
+                        <div class="feed-item ${sev}">
+                            <div class="feed-time">${i.timestamp || '-'}</div>
+                            <div class="feed-name">${sev} — ${i.student_name}</div>
+                            <div class="feed-msg">${i.message || '-'}</div>
+                        </div>`;
+                }).join('');
+            })
+            .catch(console.error);
+    }
+
+    // Initial load
+    loadStats();
+    loadIncidents();
+
+    // Auto refresh every 5 seconds
+    setInterval(() => {
+        loadStats();
+        loadIncidents();
+    }, 5000);
+</script>
+
+</body>
+</html>
