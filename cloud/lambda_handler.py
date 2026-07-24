@@ -3,25 +3,20 @@ import boto3
 import os
 from datetime import datetime
 
-# ─── AWS SERVICES ─────────────────────────────────────────────
 dynamodb = boto3.resource("dynamodb", region_name="us-east-1")
 sns = boto3.client("sns", region_name="us-east-1")
 
-# ─── YOUR CONFIG ──────────────────────────────────────────────
 TABLE_NAME = os.environ.get("TABLE_NAME", "safewalk_incidents")
-SNS_TOPIC = os.environ.get(
-    "SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:653266299688:safewalk-alerts"
-)
+SNS_TOPIC = os.environ.get("SNS_TOPIC_ARN", "arn:aws:sns:us-east-1:653266299688:safewalk-alerts")
 
 
-# ─── MAIN LAMBDA HANDLER ──────────────────────────────────────
 def handler(event, context):
-    print("⚡ Lambda triggered!")
-    print(f" Event received: {json.dumps(event)}")
-
+    print("Lambda triggered!")
     try:
-        # ── Step 1: Parse the alert from fog node ──
-        if isinstance(event.get("body"), str):
+        if "Records" in event:
+            body = event["Records"][0]["body"]
+            alert = json.loads(body)
+        elif isinstance(event.get("body"), str):
             alert = json.loads(event["body"])
         else:
             alert = event
@@ -33,11 +28,8 @@ def handler(event, context):
         timestamp = alert.get("timestamp", datetime.now().strftime("%H:%M:%S"))
         message = alert.get("message", "No message")
 
-        print(
-            f" Processing alert for {student_name} — Score: {risk_score} — {severity}"
-        )
+        print(f"Processing alert for {student_name} Score: {risk_score} {severity}")
 
-        # ── Step 2: Save to DynamoDB ──
         table = dynamodb.Table(TABLE_NAME)
         table.put_item(
             Item={
@@ -51,17 +43,16 @@ def handler(event, context):
                 "date": datetime.now().strftime("%Y-%m-%d"),
             }
         )
-        print(f" Incident saved to DynamoDB")
+        print("Incident saved to DynamoDB")
 
-        # ── Step 3: Send SNS notification to security ──
         sns_message = f"""
- SafeWalk Campus Alert
+SafeWalk Campus Alert
 
-Student  : {student_name} ({student_id})
-Severity : {severity}
+Student   : {student_name} ({student_id})
+Severity  : {severity}
 Risk Score: {risk_score}/100
-Time     : {timestamp}
-Message  : {message}
+Time      : {timestamp}
+Message   : {message}
 
 Please check on this student immediately.
         """
@@ -69,23 +60,23 @@ Please check on this student immediately.
         sns.publish(
             TopicArn=SNS_TOPIC,
             Message=sns_message,
-            Subject=f"SafeWalk {severity} Alert — {student_name}",
+            Subject=f"SafeWalk {severity} Alert {student_name}",
         )
-        print(f" SNS notification sent to security!")
+        print("SNS notification sent!")
 
-        # ── Step 4: Return success ──
         return {
             "statusCode": 200,
-            "body": json.dumps(
-                {
-                    "message": "Alert processed successfully",
-                    "student": student_name,
-                    "severity": severity,
-                    "risk_score": risk_score,
-                }
-            ),
+            "body": json.dumps({
+                "message": "Alert processed successfully",
+                "student": student_name,
+                "severity": severity,
+                "risk_score": risk_score,
+            }),
         }
 
     except Exception as e:
-        print(f" Error: {str(e)}")
-        return {"statusCode": 500, "body": json.dumps({"error": str(e)})}
+        print(f"Error: {str(e)}")
+        return {
+            "statusCode": 500,
+            "body": json.dumps({"error": str(e)})
+        }
