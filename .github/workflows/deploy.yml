@@ -31,7 +31,7 @@ jobs:
           python3 -c "
           import json, sys
           sys.path.insert(0, 'sensors')
-          print('Sensor module imports OK')
+          print(' Sensor module imports OK')
           "
 
       - name: Run fog node test
@@ -39,34 +39,8 @@ jobs:
           python3 -c "
           import json, sys
           sys.path.insert(0, 'fog_node')
-          print('Fog node module imports OK')
+          print(' Fog node module imports OK')
           "
-
-  deploy-lambda:
-    name: Deploy Lambda to AWS
-    runs-on: ubuntu-latest
-    needs: test
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Configure AWS credentials
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
-          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
-          aws-region: us-east-1
-
-      - name: Deploy Lambda function
-        run: |
-          cd cloud
-          zip lambda_function.zip lambda_handler.py
-          aws lambda update-function-code \
-            --function-name safewalk-alert-handler \
-            --zip-file fileb://lambda_function.zip \
-            --region us-east-1
-          echo " Lambda deployed!"
 
   deploy-dashboard:
     name: Build and Deploy Dashboard to ECS
@@ -98,13 +72,58 @@ jobs:
         run: |
           docker build -t "$IMAGE_NAME:latest" .
           docker push "$IMAGE_NAME:latest"
-          echo " Docker image pushed to ECR..."
+          echo " Docker image pushed to ECR!"
+
+      - name: Update ECS Task Definition with fresh credentials
+        run: |
+          aws ecs register-task-definition \
+            --family safewalk-dashboard \
+            --network-mode awsvpc \
+            --requires-compatibilities FARGATE \
+            --cpu 256 \
+            --memory 512 \
+            --execution-role-arn arn:aws:iam::653266299688:role/LabRole \
+            --task-role-arn arn:aws:iam::653266299688:role/LabRole \
+            --container-definitions "[
+              {
+                \"name\": \"safewalk-dashboard\",
+                \"image\": \"653266299688.dkr.ecr.us-east-1.amazonaws.com/safewalk-dashboard:latest\",
+                \"portMappings\": [{\"containerPort\": 5000, \"protocol\": \"tcp\"}],
+                \"environment\": [
+                  {\"name\": \"AWS_DEFAULT_REGION\", \"value\": \"us-east-1\"},
+                  {\"name\": \"TABLE_NAME\", \"value\": \"safewalk_incidents\"},
+                  {\"name\": \"AWS_ACCESS_KEY_ID\", \"value\": \"${{ secrets.AWS_ACCESS_KEY_ID }}\"},
+                  {\"name\": \"AWS_SECRET_ACCESS_KEY\", \"value\": \"${{ secrets.AWS_SECRET_ACCESS_KEY }}\"},
+                  {\"name\": \"AWS_SESSION_TOKEN\", \"value\": \"${{ secrets.AWS_SESSION_TOKEN }}\"}
+                ],
+                \"logConfiguration\": {
+                  \"logDriver\": \"awslogs\",
+                  \"options\": {
+                    \"awslogs-group\": \"/ecs/safewalk-dashboard\",
+                    \"awslogs-region\": \"us-east-1\",
+                    \"awslogs-stream-prefix\": \"ecs\"
+                  }
+                }
+              }
+            ]" \
+            --region us-east-1
+          echo " Task definition updated!"
 
       - name: Deploy to ECS
         run: |
           aws ecs update-service \
             --cluster safewalk-cluster \
             --service safewalk-dashboard \
+            --task-definition safewalk-dashboard \
             --force-new-deployment \
             --region us-east-1
-          echo "Deployed to http://safewalk-lb-12772833.us-east-1.elb.amazonaws.com"
+          echo " ECS deployment triggered!"
+          echo " http://safewalk-lb-12772833.us-east-1.elb.amazonaws.com"
+
+      - name: Wait for deployment
+        run: |
+          aws ecs wait services-stable \
+            --cluster safewalk-cluster \
+            --services safewalk-dashboard \
+            --region us-east-1
+          echo " Dashboard is live!"

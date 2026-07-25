@@ -18,8 +18,8 @@ FREQUENCY    = config["sensors"]["frequency_seconds"]
 # ─── MQTT SETUP ───────────────────────────────────────────────
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(BROKER, PORT)
-print(f"✅ Sensor connected — Student: {STUDENT_NAME}")
-print(f"📡 Sending every {FREQUENCY} seconds\n")
+print(f" Sensor connected — Student: {STUDENT_NAME}")
+print(f" Sending every {FREQUENCY} seconds\n")
 
 cycle = 0
 
@@ -62,7 +62,7 @@ while True:
     }
 
     client.publish(TOPIC, json.dumps(payload))
-    print(f"📤 Sent: {payload}")
+    print(f" Sent: {payload}")
     print("-" * 60)
 
     time.sleep(FREQUENCY)
