@@ -5,14 +5,17 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+  packages: write
+
 jobs:
   test:
     name: Test Python Code
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Set up Python
         uses: actions/setup-python@v4
@@ -26,8 +29,7 @@ jobs:
       - name: Run sensor test
         run: |
           python3 -c "
-          import json
-          import sys
+          import json, sys
           sys.path.insert(0, 'sensors')
           print('Sensor module imports OK')
           "
@@ -35,8 +37,7 @@ jobs:
       - name: Run fog node test
         run: |
           python3 -c "
-          import json
-          import sys
+          import json, sys
           sys.path.insert(0, 'fog_node')
           print('Fog node module imports OK')
           "
@@ -45,10 +46,9 @@ jobs:
     name: Deploy Lambda to AWS
     runs-on: ubuntu-latest
     needs: test
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v4
@@ -66,41 +66,45 @@ jobs:
             --function-name safewalk-alert-handler \
             --zip-file fileb://lambda_function.zip \
             --region us-east-1
-          echo " Lambda deployed successfully!"
+          echo " Lambda deployed!"
 
   deploy-dashboard:
-    name: Deploy Dashboard to EC2
+    name: Build and Deploy Dashboard to ECS
     runs-on: ubuntu-latest
     needs: test
-    timeout-minutes: 10
-
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - name: Setup SSH Key
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/labsuser.pem
-          chmod 400 ~/.ssh/labsuser.pem
-          ssh-keyscan -H 3.228.214.73 >> ~/.ssh/known_hosts
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
+          aws-region: us-east-1
 
-      - name: Deploy to EC2
+      - name: Login to Amazon ECR
         run: |
-          ssh -i ~/.ssh/labsuser.pem \
-            -o StrictHostKeyChecking=no \
-            -o ConnectTimeout=60 \
-            -o ServerAliveInterval=15 \
-            -o ServerAliveCountMax=3 \
-            ec2-user@3.228.214.73 \
-            "cd safewalk-fog-edge && \
-            git pull origin main && \
-            pip3 install flask boto3 python-dotenv --quiet && \
-            fuser -k 5000/tcp || true && \
-            export AWS_ACCESS_KEY_ID='${{ secrets.AWS_ACCESS_KEY_ID }}' && \
-            export AWS_SECRET_ACCESS_KEY='${{ secrets.AWS_SECRET_ACCESS_KEY }}' && \
-            export AWS_SESSION_TOKEN='${{ secrets.AWS_SESSION_TOKEN }}' && \
-            export AWS_DEFAULT_REGION=us-east-1 && \
-            nohup python3 dashboard/app.py > ~/dashboard.log 2>&1 & \
-            sleep 3 && \
-            echo 'Dashboard deployed successfully!'"
+          aws ecr get-login-password \
+            --region us-east-1 | docker login \
+            --username AWS \
+            --password-stdin \
+            653266299688.dkr.ecr.us-east-1.amazonaws.com
+
+      - name: Build and Push Docker Image
+        env:
+          IMAGE_NAME: 653266299688.dkr.ecr.us-east-1.amazonaws.com/safewalk-dashboard
+        run: |
+          docker build -t "$IMAGE_NAME:latest" .
+          docker push "$IMAGE_NAME:latest"
+          echo " Docker image pushed to ECR..."
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service \
+            --cluster ${{ secrets.ECS_CLUSTER }} \
+            --service ${{ secrets.ECS_SERVICE }} \
+            --force-new-deployment \
+            --region us-east-1
+          echo " ECS deployment triggered..."
