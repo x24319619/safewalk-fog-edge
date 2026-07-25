@@ -29,13 +29,17 @@ def index():
 @app.route("/api/incidents")
 def get_incidents():
     try:
-        response = table.scan()
+        response  = table.scan()
         incidents = response.get("Items", [])
-        incidents.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+        # Sort by date and timestamp newest first
+        incidents.sort(
+            key=lambda x: (x.get("date", ""), x.get("timestamp", "")),
+            reverse=True
+        )
         return jsonify({"incidents": incidents, "total": len(incidents)})
     except Exception as e:
+        print(f" DynamoDB Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
-
 
 @app.route("/api/stats")
 def get_stats():

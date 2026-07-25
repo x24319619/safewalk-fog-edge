@@ -33,14 +33,17 @@ def handler(event, context):
         table = dynamodb.Table(TABLE_NAME)
         table.put_item(
             Item={
-                "incident_id": f"{student_id}_{timestamp}",
-                "student_id": student_id,
-                "student_name": student_name,
-                "risk_score": str(risk_score),
-                "severity": severity,
-                "message": message,
-                "timestamp": timestamp,
-                "date": datetime.now().strftime("%Y-%m-%d"),
+                    "incident_id"  : f"{student_id}_{timestamp}",
+                    "student_id"   : student_id,
+                    "student_name" : student_name,
+                    "risk_score"   : str(risk_score),
+                    "severity"     : severity,
+                    "message"      : message,
+                    "timestamp"    : timestamp,
+                    "date"         : datetime.now().strftime("%Y-%m-%d"),
+                    "location"     : alert.get("location", "Unknown"),
+                    "lat"          : str(alert.get("lat", 0)),
+                    "lng"          : str(alert.get("lng", 0)),
             }
         )
         print("Incident saved to DynamoDB")

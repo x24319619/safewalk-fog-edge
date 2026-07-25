@@ -314,8 +314,10 @@
             <table>
                 <thead>
                 <tr>
+                    <th>Date</th>
                     <th>Time</th>
                     <th>Student</th>
+                    <th>Location</th>
                     <th>Risk Score</th>
                     <th>Severity</th>
                     <th>Message</th>
@@ -469,10 +471,12 @@
                     const scoreColor = score >= 65 ? '#FF4757' : score >= 35 ? '#FFB347' : '#2ED573';
                     return `
                         <tr>
-                            <td style="font-family:monospace;color:#7A9BB5">${i.timestamp || '-'}</td>
-                            <td style="font-weight:600">${i.student_name || '-'}</td>
-                            <td style="font-family:monospace;color:${scoreColor};font-weight:700">${score}/100</td>
-                            <td><span class="badge badge-${sev}">${sev}</span></td>
+                           <td style="font-family:monospace;color:#7A9BB5">${i.date || '-'}</td>
+                           <td style="font-family:monospace;color:#7A9BB5">${i.timestamp || '-'}</td>
+                           <td style="font-weight:600">${i.student_name || '-'}</td>
+                           <td style="color:#00D4FF">${i.location || 'Unknown'}</td>
+                           <td style="font-family:monospace;color:${scoreColor};font-weight:700">${score}/100</td>
+                           <td><span class="badge badge-${sev}">${sev}</span></td>
                             <td style="color:#7A9BB5;font-size:12px">${i.message || '-'}</td>
                         </tr>`;
                 }).join('');
