@@ -66,6 +66,9 @@ def make_decision(score, data, client):
             "severity": "CRITICAL",
             "timestamp": data["timestamp"],
             "message": f"Student {name} needs immediate help!",
+            "location": data.get("location", "Unknown"),
+            "lat": data.get("lat", 0),
+            "lng": data.get("lng", 0),
         }
         # ── Publish to IoT Core ──
         iot_client.publish(topic=PUB_TOPIC, qos=1, payload=json.dumps(alert))
@@ -81,6 +84,9 @@ def make_decision(score, data, client):
             "severity": "WARNING",
             "timestamp": data["timestamp"],
             "message": f"Student {name} showing warning signs",
+            "location": data.get("location", "Unknown"),
+            "lat": data.get("lat", 0),
+            "lng": data.get("lng", 0),
         }
         # ── Publish to IoT Core ──
         iot_client.publish(topic=PUB_TOPIC, qos=1, payload=json.dumps(alert))
