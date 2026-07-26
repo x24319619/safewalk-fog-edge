@@ -1,10 +1,17 @@
 import time
 import random
 import json
+from pathlib import Path
 import yaml
 import paho.mqtt.client as mqtt
 
-with open("sensors_config.yaml", "r") as f:
+SCRIPT_DIR = Path(__file__).resolve().parent
+CONFIG_PATH = SCRIPT_DIR.parent / "sensors_config.yaml"
+
+if not CONFIG_PATH.exists():
+    raise FileNotFoundError(f"Could not find config file at {CONFIG_PATH}")
+
+with CONFIG_PATH.open("r") as f:
     config = yaml.safe_load(f)
 
 BROKER       = config["mqtt"]["broker"]
@@ -12,10 +19,11 @@ PORT         = config["mqtt"]["port"]
 TOPIC        = config["mqtt"]["topic"]
 STUDENT_ID   = config["student"]["id"]
 STUDENT_NAME = config["student"]["name"]
+FREQUENCY_SECONDS = config.get("sensors", {}).get("frequency_seconds", 5)
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(BROKER, PORT)
-print(f"✅ Sensor connected — Student: {STUDENT_NAME}")
+print(f" Sensor connected — Student: {STUDENT_NAME}")
 
 # ─── NCI Dublin Campus Locations ──────────────────────────────
 LOCATIONS = [
@@ -69,6 +77,6 @@ while True:
     }
 
     client.publish(TOPIC, json.dumps(payload))
-    print(f"📤 Sent: {payload}")
+    print(f" Sent: {payload}")
     print("-" * 60)
-    time.sleep(1800)
+    time.sleep(FREQUENCY_SECONDS)

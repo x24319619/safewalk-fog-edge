@@ -9,7 +9,7 @@ mqtt:
   topic: campus/student/location
 
 sensors:
-  frequency_seconds: 60
+  frequency_seconds: 5
   dispatch_rate: 1
 
 scenarios:
