@@ -1,4 +1,5 @@
 import os
+from datetime import datetime
 from flask import Flask, render_template, jsonify
 import boto3
 from dotenv import load_dotenv
@@ -31,9 +32,10 @@ def get_incidents():
     try:
         response  = table.scan()
         incidents = response.get("Items", [])
-        # Sort by date and timestamp newest first
+
+        # Sort by date + timestamp newest first
         incidents.sort(
-            key=lambda x: (x.get("date", ""), x.get("timestamp", "")),
+            key=lambda x: f"{x.get('date', '')} {x.get('timestamp', '')}",
             reverse=True
         )
         return jsonify({"incidents": incidents, "total": len(incidents)})
@@ -44,11 +46,17 @@ def get_incidents():
 @app.route("/api/stats")
 def get_stats():
     try:
-        response = table.scan()
+        today = datetime.now().strftime("%Y-%m-%d")
+        response  = table.scan()
         incidents = response.get("Items", [])
-        critical = len([i for i in incidents if i.get("severity") == "CRITICAL"])
-        warning  = len([i for i in incidents if i.get("severity") == "WARNING"])
-        total    = len(incidents)
+
+        # Today's incidents only
+        today_incidents = [i for i in incidents if i.get("date") == today]
+
+        critical = len([i for i in today_incidents if i.get("severity") == "CRITICAL"])
+        warning  = len([i for i in today_incidents if i.get("severity") == "WARNING"])
+        total    = len(today_incidents)
+
         return jsonify({
             "total"   : total,
             "critical": critical,
@@ -56,6 +64,7 @@ def get_stats():
             "safe"    : total - critical - warning
         })
     except Exception as e:
+        print(f" DynamoDB Error: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 
