@@ -25,7 +25,7 @@ client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(BROKER, PORT)
 print(f" Sensor connected — Student: {STUDENT_NAME}")
 
-# ─── NCI Dublin Campus Locations ──────────────────────────────
+# ─── NCI Campus Locations ──────────────────────────────
 LOCATIONS = [
     {"name": "Main Library",      "lat": 53.3498, "lng": -6.2603},
     {"name": "Student Car Park",  "lat": 53.3495, "lng": -6.2610},
@@ -42,21 +42,21 @@ while True:
     location = random.choice(LOCATIONS)
 
     if scenario in [0, 1, 2, 3, 4, 5, 6]:
-        print("🟢 Scenario: Normal Walk")
+        print(" Scenario: Normal Walk")
         speed      = round(random.uniform(1.0, 2.5), 2)
         light      = round(random.uniform(200, 600), 1)
         stationary = 0
         panic      = False
 
     elif scenario in [7, 8]:
-        print("🟡 Scenario: Stopped in Dark Zone")
+        print(" Scenario: Stopped in Dark Zone")
         speed      = round(random.uniform(0.0, 0.1), 2)
         light      = round(random.uniform(10, 45), 1)
         stationary = random.choice([120, 150])
         panic      = False
 
     else:
-        print("🔴 Scenario: PANIC BUTTON!")
+        print(" Scenario: PANIC BUTTON!")
         speed      = 0.0
         light      = round(random.uniform(5, 30), 1)
         stationary = 200
