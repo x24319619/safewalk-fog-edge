@@ -1,7 +1,29 @@
-import time
-import random
+import importlib.util
 import json
+import os
+import random
+import sys
+import time
 from pathlib import Path
+
+
+def _ensure_project_venv():
+    if importlib.util.find_spec("yaml") is not None and importlib.util.find_spec("paho.mqtt.client") is not None:
+        return
+
+    repo_root = Path(__file__).resolve().parents[1]
+    venv_python = repo_root / "venv" / "bin" / "python"
+    if venv_python.exists() and os.access(venv_python, os.X_OK):
+        os.execv(str(venv_python), [str(venv_python), str(Path(__file__).resolve()), *sys.argv[1:]])
+
+    raise ModuleNotFoundError(
+        "Missing sensor dependencies. Run `./venv/bin/pip install -r sensors/requirements.txt` "
+        "or start the script with `./venv/bin/python sensors/sensor_sim.py`."
+    )
+
+
+_ensure_project_venv()
+
 import yaml
 import paho.mqtt.client as mqtt
 
