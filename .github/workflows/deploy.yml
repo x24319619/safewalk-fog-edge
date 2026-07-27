@@ -59,7 +59,7 @@ jobs:
 
       - name: Build and Push Docker Image
         env:
-          IMAGE_NAME: ghcr.io/${{ github.repository_owner }}/safewalk-dashboard
+          IMAGE_NAME: ghcr.io/x24319619/safewalk-dashboard
         run: |
           docker build -t "$IMAGE_NAME:latest" .
           docker push "$IMAGE_NAME:latest"
@@ -73,40 +73,6 @@ jobs:
           aws-session-token: ${{ secrets.AWS_SESSION_TOKEN }}
           aws-region: us-east-1
 
-      - name: Update ECS Task Definition
-        run: |
-          aws ecs register-task-definition \
-            --family safewalk-dashboard \
-            --network-mode awsvpc \
-            --requires-compatibilities FARGATE \
-            --cpu 256 \
-            --memory 512 \
-            --execution-role-arn arn:aws:iam::653266299688:role/LabRole \
-            --task-role-arn arn:aws:iam::653266299688:role/LabRole \
-            --container-definitions "[
-              {
-                \"name\": \"safewalk-dashboard\",
-                \"image\": \"ghcr.io/${{ github.repository_owner }}/safewalk-dashboard:latest\",
-                \"portMappings\": [{\"containerPort\": 5000, \"protocol\": \"tcp\"}],
-                \"environment\": [
-                  {\"name\": \"AWS_DEFAULT_REGION\", \"value\": \"us-east-1\"},
-                  {\"name\": \"TABLE_NAME\", \"value\": \"safewalk_incidents\"},
-                  {\"name\": \"AWS_ACCESS_KEY_ID\", \"value\": \"${{ secrets.AWS_ACCESS_KEY_ID }}\"},
-                  {\"name\": \"AWS_SECRET_ACCESS_KEY\", \"value\": \"${{ secrets.AWS_SECRET_ACCESS_KEY }}\"},
-                  {\"name\": \"AWS_SESSION_TOKEN\", \"value\": \"${{ secrets.AWS_SESSION_TOKEN }}\"}
-                ],
-                \"logConfiguration\": {
-                  \"logDriver\": \"awslogs\",
-                  \"options\": {
-                    \"awslogs-group\": \"/ecs/safewalk-dashboard\",
-                    \"awslogs-region\": \"us-east-1\",
-                    \"awslogs-stream-prefix\": \"ecs\"
-                  }
-                }
-              }
-            ]" \
-            --region us-east-1
-          echo "✅ Task definition updated!"
 
       - name: Deploy to ECS
         run: |
