@@ -45,6 +45,7 @@ FREQUENCY_SECONDS = config.get("sensors", {}).get("frequency_seconds", 5)
 
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.connect(BROKER, PORT)
+client.loop_start()
 print(f" Sensor connected — Student: {STUDENT_NAME}")
 
 # ─── NCI Campus Locations ──────────────────────────────
@@ -98,7 +99,10 @@ while True:
         "date"           : time.strftime("%Y-%m-%d"),
     }
 
-    client.publish(TOPIC, json.dumps(payload))
-    print(f" Sent: {payload}")
+    result = client.publish(TOPIC, json.dumps(payload))
+    if result.rc != mqtt.MQTT_ERR_SUCCESS:
+        print(f" Publish failed with rc={result.rc}")
+    else:
+        print(f" Sent: {payload}")
     print("-" * 60)
     time.sleep(FREQUENCY_SECONDS)
