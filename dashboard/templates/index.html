@@ -101,9 +101,9 @@
 
 <div class="stats-grid">
     <div class="stat-card total"><div class="stat-glow"></div><div class="stat-icon">📊</div><div class="stat-val" id="total">0</div><div class="stat-label">Total Incidents</div></div>
-    <div class="stat-card critical"><div class="stat-glow"></div><div class="stat-icon">🚨</div><div class="stat-val" id="critical">0</div><div class="stat-label">Critical Alerts</div></div>
-    <div class="stat-card warning"><div class="stat-glow"></div><div class="stat-icon">⚡</div><div class="stat-val" id="warning">0</div><div class="stat-label">Warnings</div></div>
-    <div class="stat-card safe"><div class="stat-glow"></div><div class="stat-icon">✅</div><div class="stat-val" id="safe">0</div><div class="stat-label">Safe Events</div></div>
+    <div class="stat-card critical"><div class="stat-glow"></div><div class="stat-icon">🔴</div><div class="stat-val" id="critical">0</div><div class="stat-label">Critical Alerts</div></div>
+    <div class="stat-card warning"><div class="stat-glow"></div><div class="stat-icon">🟡</div><div class="stat-val" id="warning">0</div><div class="stat-label">Warnings</div></div>
+    <div class="stat-card safe"><div class="stat-glow"></div><div class="stat-icon">🟢</div><div class="stat-val" id="safe">0</div><div class="stat-label">Safe Events</div></div>
 </div>
 
 <!-- MAP SECTION -->
@@ -180,7 +180,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 <script>
-    // ─── CLOCK ────────────────────────────────────────────────
+    // ─── Current Time ───────────────────────────
     function updateClock() {
         const now = new Date();
         document.getElementById('clock').textContent =
@@ -254,7 +254,7 @@
             marker.bindPopup(`
                 <div style="font-family:sans-serif;min-width:200px">
                     <div style="font-weight:700;font-size:14px;margin-bottom:8px">
-                        ${sev === 'CRITICAL' ? '🚨' : sev === 'WARNING' ? '⚡' : '✅'} ${sev} Alert
+                        ${sev === 'CRITICAL' ? '🔴' : sev === 'WARNING' ? '🟡' : '🟢'} ${sev} Alert
                     </div>
                     <div><b>Student:</b> ${i.student_name}</div>
                     <div><b>Location:</b> ${i.location || 'Unknown'}</div>
@@ -317,8 +317,8 @@
                 if (latest) {
                     const score = parseInt(latest.risk_score) || 0;
                     const color = score >= 65 ? '#FF4757' : score >= 35 ? '#FFB347' : '#2ED573';
-                    const status = score >= 65 ? '🚨 CRITICAL — Security Alerted!' :
-                                   score >= 35 ? '⚡ WARNING — Monitoring Closely' : '✅ SAFE';
+                    const status = score >= 65 ? '🔴 CRITICAL — Security Alerted!' :
+                                   score >= 35 ? '🟡 WARNING — Monitoring Closely' : '🟢 SAFE';
                     document.getElementById('riskStudent').textContent = latest.student_name || 'Unknown';
                     document.getElementById('riskVal').textContent = score + '/100';
                     document.getElementById('riskBar').style.width = score + '%';
