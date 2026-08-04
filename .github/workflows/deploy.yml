@@ -75,15 +75,17 @@ jobs:
 
       - name: Update ECS Task Definition
         run: |
+          ROLE_ARN=$(aws iam get-role --role-name LabRole --query 'Role.Arn' --output text)
+          echo "Using role: $ROLE_ARN"
           aws ecs register-task-definition \
             --family safewalk-dashboard \
             --network-mode awsvpc \
             --requires-compatibilities FARGATE \
             --cpu 256 \
             --memory 512 \
-            --execution-role-arn arn:aws:iam::653266299688:role/LabRole \
-            --task-role-arn arn:aws:iam::653266299688:role/LabRole \
-            --container-definitions '[{"name":"safewalk-dashboard","image":"ghcr.io/${{ github.repository_owner }}/safewalk-dashboard:latest","portMappings":[{"containerPort":5000,"protocol":"tcp"}],"environment":[{"name":"AWS_DEFAULT_REGION","value":"us-east-1"},{"name":"TABLE_NAME","value":"safewalk_incidents"}],"logConfiguration":{"logDriver":"awslogs","options":{"awslogs-group":"/ecs/safewalk-dashboard","awslogs-region":"us-east-1","awslogs-stream-prefix":"ecs"}}}]' \
+            --execution-role-arn $ROLE_ARN \
+            --task-role-arn $ROLE_ARN \
+            --container-definitions '[{"name":"safewalk-dashboard","image":"ghcr.io/x24319619/safewalk-dashboard:latest","portMappings":[{"containerPort":5000,"protocol":"tcp"}],"environment":[{"name":"AWS_DEFAULT_REGION","value":"us-east-1"},{"name":"TABLE_NAME","value":"safewalk_incidents"}],"logConfiguration":{"logDriver":"awslogs","options":{"awslogs-group":"/ecs/safewalk-dashboard","awslogs-region":"us-east-1","awslogs-stream-prefix":"ecs"}}}]' \
             --region us-east-1
           echo " Task definition updated!"
 
